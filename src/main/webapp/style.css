@@ -1,0 +1,23 @@
+html {
+    font-family: sans-serif;
+    background-color: aliceblue;
+}
+
+/*These are for showing messages*/
+li.INFO {
+    color: green;
+}
+li.FINE {
+    color: lightgreen;
+}
+li.WARNING {
+    color: red;
+}
+li.SEVERE {
+    background-color: red;
+    color: blue;
+}
+
+button.dangerous {
+    color: darkred;
+}

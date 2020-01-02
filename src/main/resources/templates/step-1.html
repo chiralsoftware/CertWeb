@@ -1,0 +1,21 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="/template.html">
+    <head>
+        <title>Step 1 - Initialize keystore</title>
+    </head>
+    <body>
+        <h1 layout:fragment="title">Step 1 - Initialize keystore</h1>
+
+        <div layout:fragment="content">
+            <p>The keystore must be created and initialized with a key pair and self-signed cert.</p>
+
+            <form th:object="${paramsForm}" th:action="@{/create-private-key}" method="post">
+                <p>Domain name: <input type="text" th:field="*{domain}"/></p>
+                <p><input type="submit" value="generate CSR"/></p>
+            </form>
+
+        </div>
+
+    </body>
+</html>

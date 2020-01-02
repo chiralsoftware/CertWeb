@@ -1,0 +1,26 @@
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+    <head>
+        <title>Template</title>
+        <link rel = "stylesheet" href = "style.css" />
+        <script src="./webjars/jquery/jquery.js"></script>
+        <script th:src="@{/functions.js}"></script>
+    </head>
+    <body>
+        
+        <h1 layout:fragment="title">Content here</h1>
+        
+        <h2 th:unless="${messages == null or messages.empty}">messages</h2>
+        <ul th:unless="${messages == null or messages.empty}" >
+            <li th:each="m : ${messages}" th:text="${m.string}" th:class="${m.level}">message</li>
+        </ul>
+
+        <h2 th:unless="${status == null or status.empty}">status</h2>
+        <ul th:unless="${status == null or status.empty}" >
+            <li th:each="m : ${status}" th:text="${m.string}" th:class="${m.level}">message</li>
+        </ul>
+
+        <div layout:fragment="content">Content here</div>
+    </body>
+</html>

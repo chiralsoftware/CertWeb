@@ -1,0 +1,28 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="/template.html">
+    <head>
+        <title>Step 2 - Generate CSR</title>
+    </head>
+    <body>
+        <h1 layout:fragment="title">Step 2 - Generate CSR</h1>
+
+        <div layout:fragment="content">
+            
+            <textarea spellcheck="false" style="resize: none; overflow: hidden;" onclick="this.focus();this.select()" 
+                      readonly="readonly" cols="80" th:rows="${csr.lines().count()}">[[${csr}]]</textarea>
+            <p><a th:href="@{/csr}">download CSR as PEM file</a></p>
+            
+            <form th:action="@{/save-response}" enctype="multipart/form-data" method="post">
+                <p>Fullchain file upload: <input name="fullchain" type="file"/></p>
+                <p><input type="submit" value="Save response"/></p>
+            </form>
+            
+            <form th:action="@{/reset-keystore}" method="post">
+                <p><input type="submit" disabled="disabled" class="dangerous" value="delete private key"/>
+                are you sure? <input id="dangerCheckbox" type="checkbox"  /></p>
+            </form>
+        </div>
+
+    </body>
+</html>

@@ -1,0 +1,19 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="/template.html">
+    <head>
+        <title>Problem detected</title>
+    </head>
+    <body>
+        <h1 layout:fragment="title">Problem detected</h1>
+
+        <div layout:fragment="content">
+            <p>A problem has been detected with the keystore file.</p>
+            <form th:action="@{}" method="post">
+                <p>Click this button to delete the keystore and start over:
+                    
+                </p>
+            </form>
+        </div>
+    </body>
+</html>

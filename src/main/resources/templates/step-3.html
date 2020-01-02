@@ -1,0 +1,52 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="/template.html">
+    <head>
+        <title>Step 3 - Complete</title>
+    </head>
+    <body>
+        <h1 layout:fragment="title">Step 3 - Complete</h1>
+
+        <div layout:fragment="content">
+            
+            <p>Certificate installation has completed successfully.</p>
+            <p>This is the completely installed certificate chain:</p>
+            <p>Permissions on files have been set.</p>
+            
+            <form th:action="@{/remove-chain}" method="post">
+                <p><input type="submit" class="dangerous" disabled="disabled" value="remove chain"/></p>
+            </form>
+            <form th:action="@{/reset-keystore}" method="post">
+                <p><input type="submit" disabled="disabled" class="dangerous" value="delete private key"/></p>
+            </form>
+            <p>are you sure? <input id="dangerCheckbox" type="checkbox"  /></p>
+            
+            <p>Click here to exit, shutting down the certificate web interface</p>
+            
+            <h2>Keystore private key entry</h2>
+            
+            <h3>Certificate chain</h3>
+            <ol start="0">
+                <li th:each="cert : ${privateKeyEntry.certificateChain}">Subject: <code>[[${cert.subject}]]</code>, 
+                    Issuer: <code>[[${cert.issuer}]]</code></li>
+            </ol>
+            <th:block th:unless="${#lists.isEmpty(privateKeyEntry.chainErrors)}">
+                <h2 style="color:red;">Chain errors detected!</h2>
+                <ul>
+                    <li th:each="error : ${privateKeyEntry.chainErrors}">[[${error}]]</li>
+                </ul>
+                <p>Browsers will probably give an error if these errors are not corrected.
+                Use the "remove chain" button above to remove the chain and re-attach
+                a correct certificate chain.</p>
+            </th:block>
+            <p style="color:red" th:if="${privateKeyEntry.selfSigned}">
+                Warning: this chain is a self-signed certificate. Browsers will not accept
+                this chain as valid. Please attach a valid chain.
+            </p>
+            <p style="color:red" th:if="${privateKeyEntry.hasIntermediateCertificate()}">
+                Warning: chain does not have an intermediate certificate.
+            </p>
+        </div>
+
+    </body>
+</html>

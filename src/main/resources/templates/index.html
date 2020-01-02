@@ -1,0 +1,59 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+            xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{template}">
+    <head>
+        <title>Cert Control</title>
+    </head>
+    <body>
+        <div layout:fragment="title">Certificate control</div>
+
+        <div layout:fragment="content">
+        
+        <h2>Actions</h2>
+        <form th:unless="${name == null}" th:action="@{/}" method="post"><p>
+                <button class="dangerous" disabled="disabled" type="submit" 
+                        name="action" value="initializeKeystore">Initialize keystore</button>
+                |
+                <button th:unless="${broken}" class="dangerous" disabled="disabled">Reset chain</button> |
+                are you sure? <input id="dangerCheckbox" type="checkbox"  /> |
+                <button>reload Tomcat</button>
+            </p>
+        </form>
+        
+        <th:block th:if="${name == null}">
+        <h2>Initialize domain name</h2>
+        <p>Initialize the domain name and create a key pair and self-signed certificate</p>
+        <form th:action="@{/initialize}" method="post">
+            <p>Domain name: <input style="font-family: monospace;" type="text" name="domain"/></p>
+            <p><input type="submit"/></p>
+        </form>
+        </th:block>
+
+        <h2>In P12 file</h2>
+        <ul>
+            <li th:each="alias : ${aliases}">[[${alias}]]</li>
+        </ul>
+
+        <h2>Certificate path</h2>
+        <ul>
+            <li th:each="certificate : ${certificates}">Subject: [[${certificate.subjectDN}]], 
+                Issuer: [[${certificate.issuerDN}]]</li>
+        </ul>
+        
+        <h1>About</h1>
+        <p>This tool is for creating a key pair, creating a CSR, and then saving a certificate
+        and chain, so that Tomcat can use TLS. As such, it is not a general-purpose equivalent
+        to command line keytool, and it will not process keystores that have unexpected
+        entries or entries with unexpected aliases. </p>
+        <p>The only expected entry in the keystore is one PrivateKeyEntry type, which initially
+        contains the key pair and self-signed cert. Then the fullchain is added to that entry.</p>
+        <p>Tomcat's TLS connector should be configured to use that entry.</p>
+        <h2>Config properties</h2>
+        <ul>
+            <li><code>keystore.alias</code></li>
+            <li><code>keystore.file</code></li>
+            <li><code>keystore.password</code></li>
+        </ul>
+        </div>
+    </body>
+</html>
