@@ -8,23 +8,13 @@
         <h1 layout:fragment="title">Step 3 - Complete</h1>
 
         <div layout:fragment="content">
-            
-            <p>Certificate installation has completed successfully.</p>
-            <p>This is the completely installed certificate chain:</p>
-            <p>Permissions on files have been set.</p>
-            
-            <form th:action="@{/remove-chain}" method="post">
-                <p><input type="submit" class="dangerous" disabled="disabled" value="remove chain"/></p>
-            </form>
-            <form th:action="@{/reset-keystore}" method="post">
-                <p><input type="submit" disabled="disabled" class="dangerous" value="delete private key"/></p>
-            </form>
-            <p>are you sure? <input id="dangerCheckbox" type="checkbox"  /></p>
-            
+
+
+
             <p>Click here to exit, shutting down the certificate web interface</p>
-            
+
             <h2>Keystore private key entry</h2>
-            
+
             <h3>Certificate chain</h3>
             <ol start="0">
                 <li th:each="cert : ${privateKeyEntry.certificateChain}">Subject: <code>[[${cert.subject}]]</code>, 
@@ -36,8 +26,8 @@
                     <li th:each="error : ${privateKeyEntry.chainErrors}">[[${error}]]</li>
                 </ul>
                 <p>Browsers will probably give an error if these errors are not corrected.
-                Use the "remove chain" button above to remove the chain and re-attach
-                a correct certificate chain.</p>
+                    Use the "remove chain" button above to remove the chain and re-attach
+                    a correct certificate chain.</p>
             </th:block>
             <p style="color:red" th:if="${privateKeyEntry.selfSigned}">
                 Warning: this chain is a self-signed certificate. Browsers will not accept
@@ -46,6 +36,16 @@
             <p style="color:red" th:if="${privateKeyEntry.hasIntermediateCertificate()}">
                 Warning: chain does not have an intermediate certificate.
             </p>
+
+            <div>
+                <form style="display: inline;" th:action="@{/remove-chain}" method="post">
+                    <p  style="display: inline;" ><input type="submit" class="dangerous" disabled="disabled" value="remove chain"/></p>
+                </form>
+                <form style="display: inline;" th:action="@{/reset-keystore}" method="post">
+                    <p  style="display: inline;" ><input type="submit" disabled="disabled" class="dangerous" value="delete private key"/></p>
+                </form>
+                <p style="display: inline;">are you sure? <input id="dangerCheckbox" type="checkbox"  /></p>
+            </div>
         </div>
 
     </body>

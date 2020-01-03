@@ -14,10 +14,10 @@ li.WARNING {
     color: red;
 }
 li.SEVERE {
-    background-color: red;
-    color: blue;
+    background-color: coral;
+    color: black;
 }
 
-button.dangerous {
+input.dangerous {
     color: darkred;
 }

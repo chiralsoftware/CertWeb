@@ -2,6 +2,7 @@ package chiralsoftware.certweb;
 
 import static chiralsoftware.certweb.CertificateUtilities.generateSelfSigned;
 import static chiralsoftware.certweb.CertificateUtilities.isSelfSignedChain;
+import static chiralsoftware.certweb.CertificateUtilities.verifyKey;
 import chiralsoftware.certweb.dto.PrivateKeyEntryInfo;
 import static com.google.common.io.BaseEncoding.base64;
 import java.io.File;
@@ -18,14 +19,12 @@ import java.security.KeyStore.PrivateKeyEntry;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
-import java.security.Security;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import static java.util.logging.Level.INFO;
 import static java.util.logging.Level.SEVERE;
@@ -34,7 +33,6 @@ import java.util.logging.Logger;
 import static java.util.stream.Collectors.toUnmodifiableList;
 import javax.security.auth.x500.X500Principal;
 import javax.validation.Valid;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
@@ -93,22 +91,9 @@ public class MainController {
     @Value("${keystore.alias:tomcat}")
     private String keystoreAlias;
     
-    static {
-        //do we actually need to do this, now that the pkcs12 is the standard keystore?
-        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
-            // insert at specific position
-//            LOG.info("Adding BouncyCastleProvider");
-//            Security.addProvider(new BouncyCastleProvider());
-        }
-
-    }
-    
     @GetMapping("/")
     public String index(Model model) throws KeyStoreException, IOException, 
             NoSuchAlgorithmException, CertificateException, NoSuchProviderException, UnrecoverableEntryException {
-        LOG.info("Getting the index, using file: " + keystoreFileName + " and password: " + keystorePassword);
-        // see:
-        // https://github.com/bcgit/bc-java/blob/master/misc/src/main/java/org/bouncycastle/jcajce/examples/PKCS12Example.java
         final List<Message> messages = new ArrayList();
         model.addAttribute("status", messages);
 
@@ -195,11 +180,7 @@ public class MainController {
                 messages.add(new Message(WARNING, "Keystore file: " + keystoreFile + " could not be deleted"));
             }
         }
-//        if(! keystoreFile.canWrite()) {
-//           messages.add(new Message(SEVERE, "Cannot access file: " + keystoreFile + " for writing"));
-//           return "redirect:/";
-//        }
-        // now generating a key
+
         messages.add(new Message(INFO, "Generating key pair"));
         try {
             final KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
@@ -272,27 +253,38 @@ public class MainController {
         return "/step-2";
     }
     
-    private KeyStore loadKeyStore() throws IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException {
-            final KeyStore store = KeyStore.getInstance("PKCS12");
-            store.load(new FileInputStream(keystoreFileName), keystorePassword.toCharArray());
-            return store;
-    }
-    
     @PostMapping("/save-response")
     public String uploadFullchain(@RequestParam MultipartFile fullchain, RedirectAttributes model) throws IOException, CertificateException {
 
         final List<Message> messages = new ArrayList<>();
         model.addFlashAttribute("messages", messages);
 
-        final CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
-        final Collection<? extends Certificate> certs =  certificateFactory.generateCertificates(fullchain.getInputStream());
-        final List<X509Certificate> certificates = certs.stream().
-                map(c ->  { return (X509Certificate) c; }).
-        collect(toUnmodifiableList());
-        final KeyStore store;
+        final List<X509Certificate> certificates = CertificateFactory.
+                getInstance("X.509").generateCertificates(fullchain.getInputStream()).
+                stream().map(c ->  (X509Certificate) c).collect(toUnmodifiableList());
+        if(certificates.isEmpty()) {
+            messages.add(new Message(WARNING, "The uploaded chain was empty"));
+            return "redirect:/step-2";
+        }
+        
         try {
-            store = loadKeyStore();
-            final PrivateKeyEntry privateKeyEntry = (PrivateKeyEntry) store.getEntry(keystoreAlias, passwordProtection);
+            final KeyStore store = loadKeyStore();
+            final PrivateKeyEntry pke = 
+                    (PrivateKeyEntry) store.getEntry(keystoreAlias, passwordProtection);
+            
+            // at this point, the PrivateKeyEntry should have exactly one cert which should be self-signed
+            // and the subject should be the same as the subject of the uploaded chain[0]. 
+            // Question 1: do the Subjects match?
+            if(! ((X509Certificate) pke.getCertificate()).getSubjectX500Principal().equals(certificates.get(0).getSubjectDN())) {
+                messages.add(new Message(SEVERE, "the first certificate in the uploaded chain subject does not match the domain"));
+                return "redirect:/step-2";
+            }
+            // Question 2: does the private key match the public key in chain[0]?
+            if(! verifyKey(pke.getPrivateKey(), certificates.get(0))) {
+                messages.add(new Message(SEVERE, "the public key in the signed certificate does not match the private key."));
+                return "redirect:/step-2";
+            }
+            
             // check for errors
             // first does the cert[0] subject public key match the private key
 
@@ -302,7 +294,7 @@ public class MainController {
                         + "This probably isn't the full chain file."));
             }
             // at this point we should attach the chain and save it
-            final PrivateKeyEntry newEntry = new PrivateKeyEntry(privateKeyEntry.getPrivateKey(), 
+            final PrivateKeyEntry newEntry = new PrivateKeyEntry(pke.getPrivateKey(), 
                     certificates.toArray(new Certificate[0]));
             store.setEntry(keystoreAlias, newEntry, new PasswordProtection(keystorePassword.toCharArray()));
             store.store(new FileOutputStream(keystoreFileName), keystorePassword.toCharArray());
@@ -335,15 +327,14 @@ public class MainController {
             // we need to re-generate teh self-signed cert!
             final X509Certificate cert = (X509Certificate) pke.getCertificate();
             final X509Certificate selfSigned =
-                    generateSelfSigned(cert.getSubjectDN().getName().replace("cn=", ""),
+                    generateSelfSigned(cert.getSubjectDN().getName().replaceAll("^[Cc][Nn]=", ""),
                             new KeyPair(cert.getPublicKey(), pke.getPrivateKey()));
             final PrivateKeyEntry newPke = new PrivateKeyEntry(pke.getPrivateKey(), new Certificate[] { selfSigned });
             store.setEntry(keystoreAlias, newPke, passwordProtection);
             store.store(new FileOutputStream(keystoreFileName), keystorePasswordChars);
             messages.add(new Message(INFO, "Chain removed from keystore"));
-        } catch(CertificateException | IOException | KeyStoreException | 
-                NoSuchAlgorithmException | UnrecoverableEntryException |
-                OperatorCreationException ex) {
+        } catch(CertificateException | IOException | KeyStoreException | NoSuchAlgorithmException | 
+                UnrecoverableEntryException | OperatorCreationException ex) {
             LOG.log(WARNING, "oh no!", ex);
             messages.add(new Message(WARNING, "keystore couldn't load, returning to step 1"));
             return "redirect:/step-1";
@@ -383,7 +374,11 @@ public class MainController {
         return "/step-3";
     }
     
-    // we shoudl be able to fix file permissions before exiting!
-    // https://stackoverflow.com/questions/13241967/change-file-owner-group-under-linux-with-java-nio-files
+    /** Load the keystore with the given parameters */
+    private KeyStore loadKeyStore() throws IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException {
+            final KeyStore store = KeyStore.getInstance("PKCS12");
+            store.load(new FileInputStream(keystoreFileName), keystorePassword.toCharArray());
+            return store;
+    }
     
 }
