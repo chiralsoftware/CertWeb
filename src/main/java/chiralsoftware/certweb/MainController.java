@@ -33,6 +33,12 @@ import java.util.logging.Logger;
 import static java.util.stream.Collectors.toUnmodifiableList;
 import javax.security.auth.x500.X500Principal;
 import javax.validation.Valid;
+import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.ExtensionsGenerator;
+import org.bouncycastle.asn1.x509.GeneralName;
+import static org.bouncycastle.asn1.x509.GeneralName.dNSName;
+import org.bouncycastle.asn1.x509.GeneralNames;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
@@ -234,6 +240,16 @@ public class MainController {
                 ((X509Certificate) privateKeyEntry.getCertificate()).getSubjectX500Principal(), 
                     privateKeyEntry.getCertificate().getPublicKey());
             
+            // Chrome requires Subject Alternative Names to work
+            // see this SO: https://stackoverflow.com/questions/34169954/create-pkcs10-request-with-subject-alternatives-using-bouncy-castle-in-java
+            final GeneralName[] nameList = new GeneralName[] { new GeneralName(dNSName, "test3.domain") };
+            
+            final ExtensionsGenerator extGen = new ExtensionsGenerator();
+            
+            final GeneralNames subjectAltNames = new GeneralNames(nameList);
+            extGen.addExtension(Extension.subjectAlternativeName, false, subjectAltNames);
+            p10Builder.addAttribute(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest, extGen.generate());
+            
             final JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder("SHA256withRSA");
             final ContentSigner signer = csBuilder.build(privateKeyEntry.getPrivateKey());
             final PKCS10CertificationRequest csr = p10Builder.build(signer);
@@ -275,7 +291,7 @@ public class MainController {
             // at this point, the PrivateKeyEntry should have exactly one cert which should be self-signed
             // and the subject should be the same as the subject of the uploaded chain[0]. 
             // Question 1: do the Subjects match?
-            if(! ((X509Certificate) pke.getCertificate()).getSubjectX500Principal().equals(certificates.get(0).getSubjectDN())) {
+            if(! ((X509Certificate) pke.getCertificate()).getSubjectX500Principal().equals(certificates.get(0).getSubjectX500Principal())) {
                 messages.add(new Message(SEVERE, "the first certificate in the uploaded chain subject does not match the domain"));
                 return "redirect:/step-2";
             }
@@ -296,8 +312,8 @@ public class MainController {
             // at this point we should attach the chain and save it
             final PrivateKeyEntry newEntry = new PrivateKeyEntry(pke.getPrivateKey(), 
                     certificates.toArray(new Certificate[0]));
-            store.setEntry(keystoreAlias, newEntry, new PasswordProtection(keystorePassword.toCharArray()));
-            store.store(new FileOutputStream(keystoreFileName), keystorePassword.toCharArray());
+            store.setEntry(keystoreAlias, newEntry, passwordProtection);
+            store.store(new FileOutputStream(keystoreFileName), keystorePasswordChars);
             messages.add(new Message(INFO, "Key store has been saved to : "  + keystoreFileName));
         } catch(CertificateException | IOException | KeyStoreException | NoSuchAlgorithmException |
                 UnrecoverableEntryException ex) {

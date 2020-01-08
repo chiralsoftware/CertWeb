@@ -26,6 +26,7 @@ import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v1CertificateBuilder;
+import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.DefaultDigestAlgorithmIdentifierFinder;
 import org.bouncycastle.operator.DefaultSignatureAlgorithmIdentifierFinder;
@@ -82,6 +83,8 @@ public final class CertificateUtilities {
 
         final SubjectPublicKeyInfo subPubKeyInfo = SubjectPublicKeyInfo.getInstance(pair.getPublic().getEncoded());
         final X500Name name = new X500Name("cn=" + domainName);
+        final X509v3CertificateBuilder v3Builder = null; // we should switch to a v3 certificate
+        // see: https://stackoverflow.com/questions/42091888/create-x509v3-certificate-with-customized-extension
         final X509v1CertificateBuilder builder = new X509v1CertificateBuilder(
                 name,
                 serialNumber,
