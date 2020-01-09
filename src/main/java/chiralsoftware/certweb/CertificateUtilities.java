@@ -21,6 +21,8 @@ import java.util.ArrayList;
 import static java.util.Collections.unmodifiableList;
 import java.util.Date;
 import java.util.List;
+import javax.naming.InvalidNameException;
+import javax.naming.ldap.LdapName;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
@@ -43,9 +45,10 @@ public final class CertificateUtilities {
     private CertificateUtilities() {
         throw new RuntimeException("don't instantiate");
     }
-    
+
     public static boolean isSelfSignedChain(Certificate[] certs) {
-        if(certs.length != 1) return false;
+        if (certs.length != 1)
+            return false;
         final X509Certificate cert = (X509Certificate) certs[0];
         return cert.getSubjectX500Principal().equals(cert.getIssuerX500Principal());
     }
@@ -116,8 +119,8 @@ public final class CertificateUtilities {
      */
     public static List<String> verifyCerts(PrivateKey privateKey, X509Certificate[] certs) {
         final List<String> result = new ArrayList<>();
-        if(! verifyKey(privateKey, certs[0])) 
-                result.add("the private key does not match the first certificate in the chain. ");
+        if (!verifyKey(privateKey, certs[0]))
+            result.add("the private key does not match the first certificate in the chain. ");
         int n = certs.length;
         for (int i = 0; i < n - 1; i++) {
             final X509Certificate cert = certs[i];
@@ -129,8 +132,8 @@ public final class CertificateUtilities {
             }
             try {
                 cert.verify(issuer.getPublicKey());
-            } catch(CertificateException | InvalidKeyException | NoSuchAlgorithmException | 
-                    NoSuchProviderException | SignatureException ex) {
+            } catch (CertificateException | InvalidKeyException | NoSuchAlgorithmException
+                    | NoSuchProviderException | SignatureException ex) {
                 result.add("Cert[" + i + "] failed to verify signature: " + ex.getClass());
             }
         }
@@ -139,12 +142,17 @@ public final class CertificateUtilities {
         if (last.getIssuerX500Principal().equals(last.getSubjectX500Principal())) {
             try {
                 last.verify(last.getPublicKey());
-            } catch(CertificateException | InvalidKeyException | 
-                    NoSuchAlgorithmException | NoSuchProviderException | SignatureException ex) {
+            } catch (CertificateException | InvalidKeyException
+                    | NoSuchAlgorithmException | NoSuchProviderException | SignatureException ex) {
                 result.add("Self-signed last certificate in chain failed to verify: " + ex.getClass());
             }
         }
         return unmodifiableList(result);
+    }
+
+    static String findCommonName(X509Certificate x509) throws InvalidNameException {
+        return (String) new LdapName(x509.getSubjectX500Principal().getName()).getRdns().
+                stream().filter(rdn -> rdn.getType().equalsIgnoreCase("CN")).findFirst().get().getValue();
     }
 
 }

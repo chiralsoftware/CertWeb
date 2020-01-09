@@ -8,12 +8,19 @@
         <h1 layout:fragment="title">Problem detected</h1>
 
         <div layout:fragment="content">
-            <p>A problem has been detected with the keystore file.</p>
-            <form th:action="@{}" method="post">
-                <p>Click this button to delete the keystore and start over:
-                    
-                </p>
-            </form>
+            <p>A problem has been detected</p>
+            <p>It may be possible to delete the keystore file and start over.</p>
+
+            <div>
+                <form style="display: inline;" th:action="@{/remove-chain}" method="post">
+                    <p  style="display: inline;" ><input type="submit" class="dangerous" disabled="disabled" value="remove chain"/></p>
+                </form>
+                <form style="display: inline;" th:action="@{/reset-keystore}" method="post">
+                    <p  style="display: inline;" ><input type="submit" disabled="disabled" class="dangerous" value="delete private key"/></p>
+                </form>
+                <p style="display: inline;">are you sure? <input id="dangerCheckbox" type="checkbox"  /></p>
+                
+            </div>            
         </div>
     </body>
 </html>

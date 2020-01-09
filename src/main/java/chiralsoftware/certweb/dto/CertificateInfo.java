@@ -10,8 +10,7 @@ import java.security.cert.X509Certificate;
 import java.time.Instant;
 
 /**
- *
- * @author hh
+ * To do: replace this with a JDK 14 record type
  */
 public final class CertificateInfo {
     
@@ -19,8 +18,6 @@ public final class CertificateInfo {
     private final String issuer;
     private final Instant validTo;
     private final Instant validFrom;
-    
-    private static final String removeCnPattern = "^[cC][nN]=";
     
     public CertificateInfo(Certificate cert) {
         final X509Certificate xCert = (X509Certificate) cert;
@@ -56,9 +53,6 @@ public final class CertificateInfo {
         return validFrom;
     }
 
-    public static String getRemoveCnPattern() {
-        return removeCnPattern;
-    }
 
     @Override
     public String toString() {
