@@ -11,7 +11,7 @@
         <div layout:fragment="content">
             
             <textarea spellcheck="false" style="resize: none; overflow: hidden;" onclick="this.focus();this.select()" 
-                      readonly="readonly" cols="81" th:rows="${csr.lines().count()}">[[${csr}]]</textarea>
+                      readonly="readonly" cols="82" th:rows="${csr.lines().count()}">[[${csr}]]</textarea>
             <p><a th:href="@{/csr}">download CSR as PEM file</a></p>
             
             <form th:action="@{/save-response}" enctype="multipart/form-data" method="post">
