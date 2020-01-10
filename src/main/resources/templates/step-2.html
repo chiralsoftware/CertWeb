@@ -15,8 +15,9 @@
             <p><a th:href="@{/csr}">download CSR as PEM file</a></p>
             
             <form th:action="@{/save-response}" enctype="multipart/form-data" method="post">
-                <p>Fullchain file upload: <input name="fullchain" type="file"/></p>
-                <p><input type="submit" value="Save response"/></p>
+                <p>Fullchain file upload: 
+                    <input id="csrFileInput" name="fullchain" type="file" accept=".pem"/></p>
+                <p><input id="saveCsr" disabled="disabled" type="submit" value="Save response"/></p>
             </form>
             
             <form th:action="@{/reset-keystore}" method="post">
