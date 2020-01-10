@@ -47,6 +47,7 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -96,6 +97,9 @@ public class MainController {
 
     @Value("${keystore.alias:tomcat}")
     private String keystoreAlias;
+    
+    @Autowired
+    private ShutdownService shutdownService;
 
     @GetMapping("/")
     public String index(Model model)  {
@@ -429,6 +433,18 @@ public class MainController {
     @GetMapping("/broken")
     public String broken() {
         return "/broken";
+    }
+    @GetMapping("/shutdown")
+    public String shutdownGet() {
+        return "/shutdown";
+    }
+    
+    @PostMapping("/shutdown")
+    public String shutdown() throws InterruptedException {
+        LOG.info("Shutdown requested");
+        shutdownService.shutdown();
+        LOG.info("Async task has started!");
+        return "redirect:/shutdown";
     }
 
 }

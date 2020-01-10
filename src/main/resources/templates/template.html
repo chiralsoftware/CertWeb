@@ -23,5 +23,12 @@
         </ul>
 
         <div layout:fragment="content">Content here</div>
+
+        <hr/>
+        
+        <form method="post" th:action="@{/shutdown}">
+            Exit the certificate tool: <input type="submit" value="shutdown"/>
+        </form>
+
     </body>
 </html>
