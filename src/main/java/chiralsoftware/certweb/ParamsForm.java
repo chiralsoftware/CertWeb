@@ -11,10 +11,6 @@ public class ParamsForm {
 
     private static final Logger LOG = Logger.getLogger(ParamsForm.class.getName());
     
-    public ParamsForm() {
-        LOG.info("I AM BEING CREATED!");
-    }
-    
     @NotNull
     @NotBlank
     private String domain;
