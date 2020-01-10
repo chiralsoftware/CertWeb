@@ -1,0 +1,34 @@
+# Certificate authority for testing
+
+This directory contains scripts to create a test CA and sign
+CSRs using this CA. These scripts make no attempt to encrypt
+the private keys of the CA, and the root and intermediate certificate
+both exist in the same directory. Obviously this should not be used
+as a production certificate authority, but is for testing purposes.
+
+TL;dr: Creating a CA and signing a CSR can be done with two commands:
+
+./generate-ca.sh
+./intermediate-sign.sh /path/to/my.csr
+
+# Setting up the test CA
+
+1. Edit the vars.sh file to set the name of the CA if desired
+2. Run the generate-ca.sh command to create a new root certificate
+and signed intermediate certificate for this CA.
+
+At this point the CA has been created and relevant files are stores
+in the keys directory.
+
+# Signing a Certificate Signing Request (CSR)
+
+Save the CSR in PEM format.
+
+Run the sigining command:
+
+intermediate-sign.sh /path/to/my.csr
+
+This will save the signed certificate, and a file called fullchain.pem,
+in a newly-created tmp directory. Take the fullchain.pem file and
+upload it to the certificate manager web interface.
+

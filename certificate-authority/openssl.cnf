@@ -1,0 +1,74 @@
+# Config file for OpenSSL CA operations
+# Important: this sets up OpenSSL to use X509v3 certificates with extensions
+# All modern browsers requires certificate extensions and will reject a v1 CA
+[req]
+encrypt_key = no
+default_md = sha256
+x509_extensions = v3_ca
+distinguished_name = req_distinguished_name
+req_extensions = v3_req
+
+[req_distinguished_name]
+# This section is empty but needs to be present
+
+[ca]
+default_ca			= CA_default
+
+[CA_default]
+database			= keys/database
+copy_extensions			= none
+default_md  			= sha256
+unique_subject 			= no
+#name_opt 			= ca_default
+#cert_opt  			= ca_default
+extensions			= v3_ca
+policy 				= policy_anything
+email_in_dn 			= no
+serial				= keys/serial
+
+[ policy_anything ]
+countryName		= optional
+stateOrProvinceName	= optional
+localityName		= optional
+organizationName	= optional
+organizationalUnitName	= optional
+commonName		= supplied
+emailAddress		= optional
+
+
+
+[v3_ca]
+basicConstraints		= critical,CA:TRUE
+subjectKeyIdentifier            = hash
+authorityKeyIdentifier          = keyid:always,issuer:always
+subjectAltName			= email:move
+# key cert sign allows this cert to sign other certs
+keyUsage			= critical, keyCertSign
+# this allows it to sign server certs
+extendedKeyUsage 		= serverAuth
+
+[v3_ica]
+basicConstraints        = critical, CA:TRUE, pathlen:1
+subjectKeyIdentifier    = hash
+authorityKeyIdentifier  = keyid:always, issuer:always
+keyUsage                = critical, cRLSign, digitalSignature, keyCertSign
+subjectAltName          = email:move
+
+[v3_req]
+extendedKeyUsage = serverAuth
+basicConstraints = CA:FALSE
+
+[v3_cert]
+extendedKeyUsage = serverAuth
+basicConstraints = CA:FALSE
+keyUsage			= digitalSignature, keyEncipherment
+extendedKeyUsage 		= serverAuth
+# this is potentially dangerous and a real CA should be more careful
+copy_extensions 		= copy
+database			= keys/cert-database
+default_md 			= sha256
+unique_subject 			= no
+email_in_dn 			= no
+policy 				= policy_anything
+unique_subject 			= no
+serial				= keys/serial

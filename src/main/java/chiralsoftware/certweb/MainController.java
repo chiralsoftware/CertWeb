@@ -21,7 +21,6 @@ import java.security.KeyStore.PasswordProtection;
 import java.security.KeyStore.PrivateKeyEntry;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -99,8 +98,7 @@ public class MainController {
     private String keystoreAlias;
 
     @GetMapping("/")
-    public String index(Model model) throws KeyStoreException, IOException,
-            NoSuchAlgorithmException, CertificateException, NoSuchProviderException, UnrecoverableEntryException {
+    public String index(Model model)  {
         final List<Message> messages = new ArrayList();
         model.addAttribute("status", messages);
 
@@ -110,6 +108,7 @@ public class MainController {
         if (keystoreFile.exists()) {
             messages.add(new Message(INFO, "Keystore file exists"));
             // find out if there is a chain saved or not
+            try {
             final KeyStore store = loadKeyStore();
             if (!store.entryInstanceOf(keystoreAlias, PrivateKeyEntry.class)) {
                 LOG.info("Keystore doesn't have a private key entry so this isn't valid.");
@@ -119,6 +118,11 @@ public class MainController {
             if (isSelfSignedChain(((PrivateKeyEntry) store.getEntry(keystoreAlias, passwordProtection)).getCertificateChain())) {
                 LOG.info("Keystore has a private key entry and it is self-signed so it's time for CSR action");
                 return "redirect:/step-2";
+            }
+            } catch(CertificateException | IOException | KeyStoreException | NoSuchAlgorithmException | UnrecoverableEntryException ex) {
+                LOG.log(WARNING, "couldn't load the keystore", ex);
+                messages.add(new Message(WARNING, "couldn't access keystore file: " + keystoreFileName + " due to: " + ex.getMessage()));
+                return "redirect:/broken";
             }
             // we have a full chain in there so go to step 3 to let the user view it
             return "redirect:/step-3";
@@ -202,7 +206,7 @@ public class MainController {
             store.load(null, null);
             store.setEntry(keystoreAlias,
                     new PrivateKeyEntry(pair.getPrivate(), new Certificate[]{selfSigned}),
-                    new PasswordProtection(keystorePassword.toCharArray()));
+                    passwordProtection);
             store.store(new FileOutputStream(keystoreFile), keystorePassword.toCharArray());
             LOG.info("Keystore file was saved!");
             messages.add(new Message(INFO, "Keystore file: " + keystoreFile + " saved with private key entry."));
@@ -235,7 +239,7 @@ public class MainController {
             final PrivateKeyEntry privateKeyEntry = (PrivateKeyEntry) entry;
 
             // see: https://stackoverflow.com/questions/7933468/parsing-the-cn-out-of-a-certificate-dn
-            final String commonName = CertificateUtilities.findCommonName(((X509Certificate) privateKeyEntry.getCertificate()));
+            final String commonName = findCommonName(((X509Certificate) privateKeyEntry.getCertificate()));
 
             if (commonName.equalsIgnoreCase("null")) {
                 LOG.severe("The subject name was NULL! The certificate was not generated properly.");
@@ -250,11 +254,11 @@ public class MainController {
 
             // Chrome requires Subject Alternative Names to work
             // see this SO: https://stackoverflow.com/questions/34169954/create-pkcs10-request-with-subject-alternatives-using-bouncy-castle-in-java
-            final GeneralName[] nameList = new GeneralName[]{new GeneralName(dNSName, commonName)};
 
             final ExtensionsGenerator extGen = new ExtensionsGenerator();
 
-            final GeneralNames subjectAltNames = new GeneralNames(nameList);
+            final GeneralNames subjectAltNames = 
+                    new GeneralNames(new GeneralName[]{new GeneralName(dNSName, commonName)});
             extGen.addExtension(Extension.subjectAlternativeName, false, subjectAltNames);
             p10Builder.addAttribute(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest, extGen.generate());
 
@@ -275,6 +279,7 @@ public class MainController {
                 | KeyStoreException | UnrecoverableEntryException
                 | OperatorCreationException | InvalidNameException ex) {
             LOG.log(INFO, "oh no!", ex);
+            status.add(new Message(WARNING, "couldn't create CSR: " + ex.getMessage()));
         }
         return "/step-2";
     }
@@ -327,6 +332,8 @@ public class MainController {
         } catch (CertificateException | IOException | KeyStoreException | NoSuchAlgorithmException
                 | UnrecoverableEntryException ex) {
             LOG.log(WARNING, "oh no", ex);
+            messages.add(new Message(SEVERE, "couldn't store the response: " + ex.getMessage()));
+            return "redirect:/broken";
         }
         return "redirect:/step-3";
     }
