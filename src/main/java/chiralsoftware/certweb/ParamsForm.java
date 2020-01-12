@@ -20,8 +20,7 @@ public class ParamsForm {
     }
 
     public void setDomain(String domain) {
-        LOG.info("Setting domain to : " + domain);
-        this.domain = domain;
+        this.domain = domain == null ? null : domain.trim();
     }
 
     @Override

@@ -12,6 +12,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.cert.Certificate;
@@ -34,6 +36,7 @@ import static java.util.logging.Level.WARNING;
 import java.util.logging.Logger;
 import static java.util.stream.Collectors.toUnmodifiableList;
 import javax.naming.InvalidNameException;
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x509.Extension;
@@ -97,12 +100,12 @@ public class MainController {
 
     @Value("${keystore.alias:tomcat}")
     private String keystoreAlias;
-    
+
     @Autowired
     private ShutdownService shutdownService;
 
     @GetMapping("/")
-    public String index(Model model)  {
+    public String index(Model model) {
         final List<Message> messages = new ArrayList();
         model.addAttribute("status", messages);
 
@@ -113,17 +116,17 @@ public class MainController {
             messages.add(new Message(INFO, "Keystore file exists"));
             // find out if there is a chain saved or not
             try {
-            final KeyStore store = loadKeyStore();
-            if (!store.entryInstanceOf(keystoreAlias, PrivateKeyEntry.class)) {
-                LOG.info("Keystore doesn't have a private key entry so this isn't valid.");
-                return "redirect:/step-1";
-            }
-            // it has a private key entry - is it a chain or self-signed cert?
-            if (isSelfSignedChain(((PrivateKeyEntry) store.getEntry(keystoreAlias, passwordProtection)).getCertificateChain())) {
-                LOG.info("Keystore has a private key entry and it is self-signed so it's time for CSR action");
-                return "redirect:/step-2";
-            }
-            } catch(CertificateException | IOException | KeyStoreException | NoSuchAlgorithmException | UnrecoverableEntryException ex) {
+                final KeyStore store = loadKeyStore();
+                if (!store.entryInstanceOf(keystoreAlias, PrivateKeyEntry.class)) {
+                    LOG.info("Keystore doesn't have a private key entry so this isn't valid.");
+                    return "redirect:/step-1";
+                }
+                // it has a private key entry - is it a chain or self-signed cert?
+                if (isSelfSignedChain(((PrivateKeyEntry) store.getEntry(keystoreAlias, passwordProtection)).getCertificateChain())) {
+                    LOG.info("Keystore has a private key entry and it is self-signed so it's time for CSR action");
+                    return "redirect:/step-2";
+                }
+            } catch (CertificateException | IOException | KeyStoreException | NoSuchAlgorithmException | UnrecoverableEntryException ex) {
                 LOG.log(WARNING, "couldn't load the keystore", ex);
                 messages.add(new Message(WARNING, "couldn't access keystore file: " + keystoreFileName + " due to: " + ex.getMessage()));
                 return "redirect:/broken";
@@ -147,10 +150,11 @@ public class MainController {
             messages.add(new Message(INFO, "Keystore file: " + keystoreFile
                     + " exists, and will be erased and re-created."));
             final boolean result = keystoreFile.delete();
-            if (result)
+            if (result) {
                 messages.add(new Message(INFO, "Keystore file: " + keystoreFile + " deleted."));
-            else
+            } else {
                 messages.add(new Message(WARNING, "Keystore file: " + keystoreFile + " could not be deleted"));
+            }
         } else {
             messages.add(new Message(INFO, "Keystore file: " + keystoreFile + " did not exist so it will be created."));
         }
@@ -158,7 +162,7 @@ public class MainController {
     }
 
     @GetMapping(value = "/step-1")
-    public String step1(Model model) {
+    public String step1(Model model, HttpServletRequest request) {
         final List<Message> messages = new ArrayList();
         model.addAttribute("status", messages);
         final File keystoreFile = new File(keystoreFileName);
@@ -169,7 +173,20 @@ public class MainController {
         } else {
             messages.add(new Message(INFO, "Keystore file: " + keystoreFile + " does not exist, and will be created"));
         }
-        model.addAttribute("paramsForm", new ParamsForm());
+        final ParamsForm paramsForm = new ParamsForm();
+
+        try {
+            final String hostName = new URL(request.getRequestURL().toString()).getHost();
+            if("localhost".equalsIgnoreCase(hostName)) 
+                LOG.fine("The detected hostname is localhost, so not setting it in the form.");
+            else 
+                paramsForm.setDomain(hostName);
+            LOG.info("Detected hostname: " + hostName);
+        } catch (MalformedURLException ex) {
+            LOG.log(WARNING, "couldn't parse the URL: " + request.getRequestURL(), ex);
+            return "redirect:/broken";
+        }
+        model.addAttribute("paramsForm", paramsForm);
         return "/step-1";
     }
 
@@ -258,11 +275,10 @@ public class MainController {
 
             // Chrome requires Subject Alternative Names to work
             // see this SO: https://stackoverflow.com/questions/34169954/create-pkcs10-request-with-subject-alternatives-using-bouncy-castle-in-java
-
             final ExtensionsGenerator extGen = new ExtensionsGenerator();
 
-            final GeneralNames subjectAltNames = 
-                    new GeneralNames(new GeneralName[]{new GeneralName(dNSName, commonName)});
+            final GeneralNames subjectAltNames
+                    = new GeneralNames(new GeneralName[]{new GeneralName(dNSName, commonName)});
             extGen.addExtension(Extension.subjectAlternativeName, false, subjectAltNames);
             p10Builder.addAttribute(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest, extGen.generate());
 
@@ -408,8 +424,8 @@ public class MainController {
             final String connector = "<Connector port=\"443\" protocol=\"org.apache.coyote.http11.Http11NioProtocol\"\n"
                     + "           keystoreFile=\"" + xmlAttributeEscaper.escape(keystoreFileName) + "\"\n"
                     + "           SSLProtocol=\"TLSv1.3,TLSv1.2\" SSLEnabled=\"true\"\n"
-                    + "           keystorePass=\"" + xmlAttributeEscaper.escape(keystorePassword) + 
-                    "\" keyAlias=\"" + xmlAttributeEscaper.escape(keystoreAlias) + "\">\n"
+                    + "           keystorePass=\"" + xmlAttributeEscaper.escape(keystorePassword)
+                    + "\" keyAlias=\"" + xmlAttributeEscaper.escape(keystoreAlias) + "\">\n"
                     + "  <UpgradeProtocol className=\"org.apache.coyote.http2.Http2Protocol\"/>\n"
                     + "</Connector>";
             model.addAttribute("privateKeyEntry", new PrivateKeyEntryInfo(pke));
@@ -434,11 +450,12 @@ public class MainController {
     public String broken() {
         return "/broken";
     }
+
     @GetMapping("/shutdown")
     public String shutdownGet() {
         return "/shutdown";
     }
-    
+
     @PostMapping("/shutdown")
     public String shutdown() throws InterruptedException {
         LOG.info("Shutdown requested");
