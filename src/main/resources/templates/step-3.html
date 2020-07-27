@@ -10,9 +10,10 @@
 
         <div layout:fragment="content">
 
-
-
-            <p>Click here to exit, shutting down the certificate web interface</p>
+            <form method="post" th:action="@{/shutdown}">
+                <p>Click to exit: <input type="submit" value="exit"/> 
+                    shutting down the certificate web interface</p>
+            </form>
 
             <h2>Keystore private key entry</h2>
 
@@ -23,9 +24,9 @@
             </ol>
             <th:block th:if="${#lists.isEmpty(privateKeyEntry.chainErrors)}">
                 <p>Use this XML fragment in the Tomcat <code>server.xml</code> file to enable TLS. This is provided
-                as an example only and may need to be modified for your installation.</p>
+                    as an example only and may need to be modified for your installation.</p>
                 <textarea spellcheck="false" style="resize: none; overflow: hidden;" onclick="this.focus();this.select()" 
-                      readonly="readonly" cols="80" rows="7">[[${connector}]]</textarea>
+                          readonly="readonly" cols="80" rows="7">[[${connector}]]</textarea>
             </th:block>
             <th:block th:unless="${#lists.isEmpty(privateKeyEntry.chainErrors)}">
                 <h2 style="color:red;">Chain errors detected!</h2>
