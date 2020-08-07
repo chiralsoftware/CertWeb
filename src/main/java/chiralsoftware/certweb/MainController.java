@@ -77,14 +77,13 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
  * "tomcat" That entry is a PrivateKeyEntry type Obviously it has a private key
  * It also has a certificate chain, with chain[0] issuer=intermediate cert,
  * subject=our domain name chain[1] issuer=root cert, subject=intermediate cert
- * NOT NEEDED!!!!! chain[2] issuer=root cert, subject=root cert ?
  */
 @Controller
 public class MainController {
 
     private static final Logger LOG = Logger.getLogger(MainController.class.getName());
 
-    @Value("${keystore.file:/etc/zombiecam/certificates.p12}")
+    @Value("${keystore.file:/opt/zombiecam/jetty-base/etc/keystore}")
     private String keystoreFileName;
 
     @Value("${keystore.password:changeit}")
@@ -119,23 +118,23 @@ public class MainController {
                 final KeyStore store = loadKeyStore();
                 if (!store.entryInstanceOf(keystoreAlias, PrivateKeyEntry.class)) {
                     LOG.info("Keystore doesn't have a private key entry so this isn't valid.");
-                    return "redirect:/step-1";
+                    return "redirect:step-1";
                 }
                 // it has a private key entry - is it a chain or self-signed cert?
                 if (isSelfSignedChain(((PrivateKeyEntry) store.getEntry(keystoreAlias, passwordProtection)).getCertificateChain())) {
                     LOG.info("Keystore has a private key entry and it is self-signed so it's time for CSR action");
-                    return "redirect:/step-2";
+                    return "redirect:step-2";
                 }
             } catch (CertificateException | IOException | KeyStoreException | NoSuchAlgorithmException | UnrecoverableEntryException ex) {
                 LOG.log(WARNING, "couldn't load the keystore", ex);
                 messages.add(new Message(WARNING, "couldn't access keystore file: " + keystoreFileName + " due to: " + ex.getMessage()));
-                return "redirect:/broken";
+                return "redirect:broken";
             }
             // we have a full chain in there so go to step 3 to let the user view it
-            return "redirect:/step-3";
+            return "redirect:step-3";
         } else {
             messages.add(new Message(INFO, "Please initialize keystore"));
-            return "redirect:/step-1";
+            return "redirect:step-1";
         }
     }
 
@@ -158,7 +157,7 @@ public class MainController {
         } else {
             messages.add(new Message(INFO, "Keystore file: " + keystoreFile + " did not exist so it will be created."));
         }
-        return "redirect:/step-1";
+        return "redirect:step-1";
     }
 
     @GetMapping(value = "/step-1")
@@ -169,7 +168,7 @@ public class MainController {
         if (keystoreFile.exists()) {
             // this shouldn't happen - FIXME make it test that if the keystore exists, it has a private key
             LOG.log(INFO, "Keystore file: " + keystoreFile + " exists. Generating CSR.");
-            return "redirect:/step-2";
+            return "redirect:step-2";
         } else {
             messages.add(new Message(INFO, "Keystore file: " + keystoreFile + " does not exist, and will be created"));
         }
@@ -184,10 +183,10 @@ public class MainController {
             LOG.info("Detected hostname: " + hostName);
         } catch (MalformedURLException ex) {
             LOG.log(WARNING, "couldn't parse the URL: " + request.getRequestURL(), ex);
-            return "redirect:/broken";
+            return "redirect:broken";
         }
         model.addAttribute("paramsForm", paramsForm);
-        return "/step-1";
+        return "step-1";
     }
 
     @PostMapping(value = "/create-private-key")
@@ -201,7 +200,7 @@ public class MainController {
         } catch (KeyStoreException ex) {
             LOG.log(INFO, "couldn't create keystore", ex);
             messages.add(new Message(SEVERE, "could not create keystore of type PKCS12"));
-            return "redirect:/broken";
+            return "redirect:broken";
         }
 
         final File keystoreFile = new File(keystoreFileName);
@@ -210,7 +209,7 @@ public class MainController {
             final boolean result = keystoreFile.delete();
             if (!result) {
                 messages.add(new Message(WARNING, "Keystore file: " + keystoreFile + " could not be deleted"));
-                return "redirect:/broken";
+                return "redirect:broken";
             }
         }
 
@@ -235,9 +234,9 @@ public class MainController {
                 | CertificateException | OperatorCreationException ex) {
             LOG.log(SEVERE, "couldn't generate keypair", ex);
             messages.add(new Message(SEVERE, "Caught exception while generating key pair: " + ex.getMessage()));
-            return "redirect:/broken";
+            return "redirect:broken";
         }
-        return "redirect:/step-2";
+        return "redirect:step-2";
     }
 
     private String csrString = null;
@@ -255,7 +254,7 @@ public class MainController {
             final Entry entry = store.getEntry(keystoreAlias, passwordProtection);
             if (!(entry instanceof PrivateKeyEntry)) {
                 status.add(new Message(WARNING, "The keystore entry with alias: " + keystoreAlias + " was not a PrivateKeyEntry"));
-                return "redirect:/broken";
+                return "redirect:broken";
             }
             final PrivateKeyEntry privateKeyEntry = (PrivateKeyEntry) entry;
 
@@ -264,7 +263,7 @@ public class MainController {
 
             if (commonName.equalsIgnoreCase("null")) {
                 LOG.severe("The subject name was NULL! The certificate was not generated properly.");
-                return "redirect:/broken";
+                return "redirect:broken";
             }
             status.add(new Message(INFO, "Generating CSR from key and self-signed certificate, "
                     + "with common name =" + commonName));
@@ -301,7 +300,7 @@ public class MainController {
             LOG.log(INFO, "oh no!", ex);
             status.add(new Message(WARNING, "couldn't create CSR: " + ex.getMessage()));
         }
-        return "/step-2";
+        return "step-2";
     }
 
     @PostMapping("/save-response")
@@ -315,7 +314,7 @@ public class MainController {
                 stream().map(c -> (X509Certificate) c).collect(toUnmodifiableList());
         if (certificates.isEmpty()) {
             messages.add(new Message(WARNING, "The uploaded chain was empty"));
-            return "redirect:/step-2";
+            return "redirect:step-2";
         }
 
         try {
@@ -328,12 +327,12 @@ public class MainController {
             // Question 1: do the Subjects match?
             if (!((X509Certificate) pke.getCertificate()).getSubjectX500Principal().equals(certificates.get(0).getSubjectX500Principal())) {
                 messages.add(new Message(SEVERE, "the first certificate in the uploaded chain subject does not match the domain"));
-                return "redirect:/step-2";
+                return "redirect:step-2";
             }
             // Question 2: does the private key match the public key in chain[0]?
             if (!verifyKey(pke.getPrivateKey(), certificates.get(0))) {
                 messages.add(new Message(SEVERE, "the public key in the signed certificate does not match the private key."));
-                return "redirect:/step-2";
+                return "redirect:step-2";
             }
 
             // check for errors
@@ -353,9 +352,9 @@ public class MainController {
                 | UnrecoverableEntryException ex) {
             LOG.log(WARNING, "oh no", ex);
             messages.add(new Message(SEVERE, "couldn't store the response: " + ex.getMessage()));
-            return "redirect:/broken";
+            return "redirect:broken";
         }
-        return "redirect:/step-3";
+        return "redirect:step-3";
     }
 
     /**
@@ -391,10 +390,10 @@ public class MainController {
                 | UnrecoverableEntryException | OperatorCreationException | InvalidNameException ex) {
             LOG.log(WARNING, "oh no!", ex);
             messages.add(new Message(WARNING, "keystore couldn't load due to: " + ex.getMessage()));
-            return "redirect:/broken";
+            return "redirect:broken";
         }
 
-        return "redirect:/step-2";
+        return "redirect:step-2";
     }
 
     @GetMapping("/csr")
@@ -405,8 +404,8 @@ public class MainController {
             return notFound().build();
         }
         final HttpHeaders headers = new HttpHeaders();
-        headers.setContentDisposition(ContentDisposition.builder("attachment").filename(csrName + ".csr").
-                creationDate(ZonedDateTime.now()).build());
+        headers.setContentDisposition(ContentDisposition.
+                builder("attachment").filename(csrName + ".csr").build());
         headers.setContentType(TEXT_PLAIN);
         return ok().headers(headers).body(csrString.getBytes());
     }
@@ -434,7 +433,7 @@ public class MainController {
                 | KeyStoreException | NoSuchAlgorithmException | UnrecoverableEntryException ex) {
             LOG.log(WARNING, "oh no!", ex);
         }
-        return "/step-3";
+        return "step-3";
     }
 
     /**
@@ -448,12 +447,12 @@ public class MainController {
 
     @GetMapping("/broken")
     public String broken() {
-        return "/broken";
+        return "broken";
     }
 
     @GetMapping("/shutdown")
     public String shutdownGet() {
-        return "/shutdown";
+        return "shutdown";
     }
 
     @PostMapping("/shutdown")
@@ -461,7 +460,7 @@ public class MainController {
         LOG.info("Shutdown requested");
         shutdownService.shutdown();
         LOG.info("Async task has started!");
-        return "redirect:/shutdown";
+        return "redirect:shutdown";
     }
 
 }
