@@ -10,7 +10,7 @@ import java.security.cert.X509Certificate;
 import java.time.Instant;
 
 /**
- * To do: replace this with a JDK 14 record type
+ * To do: replace this with a JDK 16 record type
  */
 public final class CertificateInfo {
     
@@ -21,6 +21,8 @@ public final class CertificateInfo {
     
     public CertificateInfo(Certificate cert) {
         final X509Certificate xCert = (X509Certificate) cert;
+        // as of Java 16 this is deprecated
+        // https://docs.oracle.com/en/java/javase/16/docs/api/java.base/java/security/cert/X509Certificate.html#getSubjectDN()
         subject = xCert.getSubjectDN().getName();
         issuer = xCert.getIssuerDN().getName();
         validTo = xCert.getNotAfter().toInstant();
