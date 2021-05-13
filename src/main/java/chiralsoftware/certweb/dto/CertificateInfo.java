@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package chiralsoftware.certweb.dto;
 
 import java.security.cert.Certificate;
@@ -23,8 +18,10 @@ public final class CertificateInfo {
         final X509Certificate xCert = (X509Certificate) cert;
         // as of Java 16 this is deprecated
         // https://docs.oracle.com/en/java/javase/16/docs/api/java.base/java/security/cert/X509Certificate.html#getSubjectDN()
-        subject = xCert.getSubjectDN().getName();
-        issuer = xCert.getIssuerDN().getName();
+//        subject = xCert.getSubjectDN().getName();
+//        issuer = xCert.getIssuerDN().getName();
+        subject = xCert.getSubjectX500Principal().getName();
+        issuer = xCert.getIssuerX500Principal().getName();
         validTo = xCert.getNotAfter().toInstant();
         validFrom = xCert.getNotBefore().toInstant();
     }
