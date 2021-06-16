@@ -23,6 +23,7 @@ import java.util.Date;
 import java.util.List;
 import javax.naming.InvalidNameException;
 import javax.naming.ldap.LdapName;
+import javax.security.auth.x500.X500Principal;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
@@ -152,6 +153,11 @@ public final class CertificateUtilities {
 
     static String findCommonName(X509Certificate x509) throws InvalidNameException {
         return (String) new LdapName(x509.getSubjectX500Principal().getName()).getRdns().
+                stream().filter(rdn -> rdn.getType().equalsIgnoreCase("CN")).findFirst().get().getValue();
+    }
+    
+    static String findCommonName(X500Principal principal) throws InvalidNameException {
+        return (String) new LdapName(principal.getName()).getRdns().
                 stream().filter(rdn -> rdn.getType().equalsIgnoreCase("CN")).findFirst().get().getValue();
     }
 

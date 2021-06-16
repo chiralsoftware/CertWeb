@@ -27,7 +27,6 @@ import java.security.UnrecoverableEntryException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import static java.util.logging.Level.INFO;
@@ -325,8 +324,15 @@ public class MainController {
             // at this point, the PrivateKeyEntry should have exactly one cert which should be self-signed
             // and the subject should be the same as the subject of the uploaded chain[0]. 
             // Question 1: do the Subjects match?
-            if (!((X509Certificate) pke.getCertificate()).getSubjectX500Principal().equals(certificates.get(0).getSubjectX500Principal())) {
-                messages.add(new Message(SEVERE, "the first certificate in the uploaded chain subject does not match the domain"));
+            final String uploadedCommonNameCertZero =
+                    findCommonName(((X509Certificate) certificates.get(0)).getSubjectX500Principal());
+            final String pkeDomainName = 
+                    findCommonName(((X509Certificate) pke.getCertificate()).getSubjectX500Principal());
+            if (! uploadedCommonNameCertZero.equalsIgnoreCase(pkeDomainName)) {
+                messages.add(new Message(SEVERE, "the first certificate in the uploaded chain subject: " + certificates.get(0).getSubjectX500Principal() 
+                        + " domain name: "+ uploadedCommonNameCertZero +
+                        " does not match the domain: " + (((X509Certificate) pke.getCertificate()).getSubjectX500Principal()) + 
+                        " domain name: " + pkeDomainName));
                 return "redirect:step-2";
             }
             // Question 2: does the private key match the public key in chain[0]?
@@ -349,7 +355,7 @@ public class MainController {
             store.store(new FileOutputStream(keystoreFileName), keystorePasswordChars);
             messages.add(new Message(INFO, "Key store has been saved to : " + keystoreFileName));
         } catch (CertificateException | IOException | KeyStoreException | NoSuchAlgorithmException
-                | UnrecoverableEntryException ex) {
+                | UnrecoverableEntryException | InvalidNameException ex) {
             LOG.log(WARNING, "oh no", ex);
             messages.add(new Message(SEVERE, "couldn't store the response: " + ex.getMessage()));
             return "redirect:broken";
