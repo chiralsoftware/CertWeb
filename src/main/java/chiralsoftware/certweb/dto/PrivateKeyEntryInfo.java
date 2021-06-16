@@ -30,7 +30,7 @@ public class PrivateKeyEntryInfo {
         for(int i = 0; i < xChain.length; i++) xChain[i] = (X509Certificate) chain[i];
         certificateChain = new CertificateInfo[chain.length];
         for(int i = 0; i < certificateChain.length; i++)
-            certificateChain[i] = new CertificateInfo(chain[i]);
+            certificateChain[i] = new CertificateInfo((X509Certificate)chain[i]);
         chainErrors = verifyCerts(privateKey, xChain);
         selfSigned = xChain.length == 1 && 
                 xChain[0].getSubjectX500Principal().equals(xChain[0].getIssuerX500Principal());
