@@ -1,8 +1,8 @@
 package chiralsoftware.certweb;
 
 import java.util.logging.Logger;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 /** 
  * A DTO for handling keystore parameters
