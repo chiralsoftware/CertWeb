@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.0.0</version>
+        <version>3.0.5</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>chiralsoftware.certweb</groupId>
@@ -51,7 +51,7 @@
         <dependency>
             <groupId>org.webjars</groupId>
             <artifactId>jquery</artifactId>
-            <version>3.6.1</version>
+            <version>3.6.4</version>
         </dependency>
         
         <dependency>
@@ -74,6 +74,13 @@
 
     <build>
         <plugins>
+            <plugin>
+                <!-- To compile to native, make sure JAVA_HOME is set to an appropriate GraalVM with
+                native-image installed, and then run:
+                mvnw native:compile -Pnative -->
+                <groupId>org.graalvm.buildtools</groupId>
+                <artifactId>native-maven-plugin</artifactId>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
