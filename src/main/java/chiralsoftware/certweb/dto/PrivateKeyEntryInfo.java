@@ -13,49 +13,28 @@ import static java.util.stream.Collectors.joining;
 /**
  * Information about a PrivateKeyEntry
  */
-public class PrivateKeyEntryInfo {
+public record PrivateKeyEntryInfo(BigInteger modulus, CertificateInfo[] certificateChain, List<String> chainErrors, boolean selfSigned) {
     
-    private final BigInteger modulus;
-    
-    private final CertificateInfo[] certificateChain;
-    
-    private final List<String> chainErrors;
-    private final boolean selfSigned;
-    
-    public PrivateKeyEntryInfo(PrivateKeyEntry pke) {
-        final RSAPrivateKey privateKey = (RSAPrivateKey) pke.getPrivateKey();
-        modulus = privateKey.getModulus();
+    public static PrivateKeyEntryInfo build(PrivateKeyEntry pke) {
         final Certificate[] chain = pke.getCertificateChain();
         final X509Certificate[] xChain = new X509Certificate[chain.length];
         for(int i = 0; i < xChain.length; i++) xChain[i] = (X509Certificate) chain[i];
-        certificateChain = new CertificateInfo[chain.length];
+        final CertificateInfo[] certificateChain = new CertificateInfo[chain.length];
         for(int i = 0; i < certificateChain.length; i++)
             certificateChain[i] = new CertificateInfo((X509Certificate)chain[i]);
-        chainErrors = verifyCerts(privateKey, xChain);
-        selfSigned = xChain.length == 1 && 
+        final boolean selfSigned = xChain.length == 1 && 
                 xChain[0].getSubjectX500Principal().equals(xChain[0].getIssuerX500Principal());
+        
+        final RSAPrivateKey privateKey = (RSAPrivateKey) pke.getPrivateKey();
+
+        return new PrivateKeyEntryInfo(privateKey.getModulus(), 
+                certificateChain, verifyCerts(privateKey, xChain), selfSigned);
     }
 
-    public BigInteger getModulus() {
-        return modulus;
-    }
-    
     public String getModulusString() {
         return fixedLength(80).splitToList(modulus.toString(16)).stream().collect(joining("\n"));
     }
 
-    public CertificateInfo[] getCertificateChain() {
-        return certificateChain;
-    }
-
-    public List<String> getChainErrors() {
-        return chainErrors;
-    }
-
-    public boolean isSelfSigned() {
-        return selfSigned;
-    }
-    
     public boolean hasIntermediateCertificate() {
         return certificateChain.length > 2;
     }

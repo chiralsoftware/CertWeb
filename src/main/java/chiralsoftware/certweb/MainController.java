@@ -433,7 +433,7 @@ public class MainController {
                     + "\" keyAlias=\"" + xmlAttributeEscaper.escape(keystoreAlias) + "\">\n"
                     + "  <UpgradeProtocol className=\"org.apache.coyote.http2.Http2Protocol\"/>\n"
                     + "</Connector>";
-            model.addAttribute("privateKeyEntry", new PrivateKeyEntryInfo(pke));
+            model.addAttribute("privateKeyEntry", PrivateKeyEntryInfo.build(pke));
             model.addAttribute("connector", connector);
         } catch (CertificateException | IOException
                 | KeyStoreException | NoSuchAlgorithmException | UnrecoverableEntryException ex) {

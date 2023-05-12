@@ -20,6 +20,8 @@
                 <p><input id="saveCsr" disabled="disabled" type="submit" value="Save response"/></p>
             </form>
             
+            <p><a href=".well-known">save well-known validation file</a> if it is required by the certificate authority</p>
+            
             <form th:action="@{/reset-keystore}" method="post">
                 <p><input type="submit" disabled="disabled" class="dangerous" value="delete private key"/>
                 are you sure? <input id="dangerCheckbox" type="checkbox"  /></p>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="template.html">
+    <head>
+        <title>Save validation file to well-known location</title>
+    </head>
+    <body>
+        <h1 layout:fragment="title">Save validation file to well-known location</h1>
+
+        <div layout:fragment="content">
+            <p>If your certificate authority requires placing a file in a well-known location,
+            use this form</p>
+            
+            <p><a href="step-2">back to certificate</a></p>
+            
+            <th:block th:unless="${#strings.isEmpty(wellKnownPath)}">
+            <h2>Well known file</h2>
+            <p>Path: [[${wellKnownPath}]]</p>
+            <p>Full URL: [[${requestUrl}]]/[[${wellKnownPath}]]</p>
+            <p>Contents: [[${file}]]</p>
+            </th:block>
+            
+            <form th:action="@{/.well-known}" enctype="multipart/form-data" method="post">
+                <p>Path: <input type="text" name="path"/></p>
+                <p>Value: <input id="contents" name="contents" type="file"/></p>
+                <p><input type="submit" value="save"/></p>
+            </form>
+            
+            <h2>GET requests received</h2>
+            <p th:if="${#lists.isEmpty(requests)}">no GET requests have been received</p>
+            <table th:unless="${#lists.isEmpty(requests)}">
+                <thead>
+                    <tr>
+                        <th>Path</th>
+                        <th>IP address</th>
+                        <th>User Agent</th>
+                        <th>Response code</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="r : ${requests}">
+                        <td>[[${r.path}]]</td>
+                        <td>[[${r.ipAddress}]]</td>
+                        <td>[[${r.userAgent}]]</td>
+                        <td>[[${r.responseCode}]]</td>
+                        <td>[[${r.time}]]</td>
+                    </tr>
+                </tbody>
+            </table>
+
+        </div>
+
+    </body>
+</html>
