@@ -38,9 +38,10 @@ public class WellKnownLocationController {
     private String wellKnownPath = null;
     private byte[] fileValue = "this is the file bytes".getBytes();
     
-    private static record Request(String path, String ipAddress, String userAgent, short responseCode, Instant time) { 
+    private static record Request(String path, String url, String ipAddress, String userAgent, short responseCode, Instant time) { 
         static Request build(HttpServletRequest r, short responseCode) {
             return new Request(truncate(r.getRequestURI(),80, "..."), 
+                    truncate(r.getRequestURL().toString(),120, "..."),
                     r.getRemoteAddr(), truncate(r.getHeader(USER_AGENT),50, "..."), 
                     responseCode, now());
         }
@@ -93,8 +94,9 @@ public class WellKnownLocationController {
     public String post(MultipartFile contents, String path) throws IOException {
         wellKnownPath = truncate(path.trim(),100, "..."); 
         if(wellKnownPath.startsWith("/")) wellKnownPath = wellKnownPath.substring(1);
+        if(contents.getSize() > 8096) LOG.warning("The uploaded file was too large");
         fileValue = contents.getBytes();
-        LOG.info("this is now the path: " + wellKnownPath + " and the file bytes are: " + new String(fileValue));
+        LOG.finest("this is now the path: " + wellKnownPath + " and the file bytes are: " + fileToString(fileValue));
         return "redirect:/.well-known";
     }
     

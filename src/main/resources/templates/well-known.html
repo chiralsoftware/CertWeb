@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      layout:decorate="template.html">
+      layout:decorate="~{template}">
     <head>
         <title>Save validation file to well-known location</title>
     </head>
@@ -32,7 +32,7 @@
             <table th:unless="${#lists.isEmpty(requests)}">
                 <thead>
                     <tr>
-                        <th>Path</th>
+                        <th>URL</th>
                         <th>IP address</th>
                         <th>User Agent</th>
                         <th>Response code</th>
@@ -41,7 +41,7 @@
                 </thead>
                 <tbody>
                     <tr th:each="r : ${requests}">
-                        <td>[[${r.path}]]</td>
+                        <td>[[${r.url}]]</td>
                         <td>[[${r.ipAddress}]]</td>
                         <td>[[${r.userAgent}]]</td>
                         <td>[[${r.responseCode}]]</td>
