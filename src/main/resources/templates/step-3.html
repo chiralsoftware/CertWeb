@@ -41,7 +41,7 @@
                 Warning: this chain is a self-signed certificate. Browsers will not accept
                 this chain as valid. Please attach a valid chain.
             </p>
-            <p style="color:red" th:if="${privateKeyEntry.hasIntermediateCertificate()}">
+            <p style="color:red" th:unless="${privateKeyEntry.hasIntermediateCertificate()}">
                 Warning: chain does not have an intermediate certificate.
             </p>
 

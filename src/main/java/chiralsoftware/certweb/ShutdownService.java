@@ -7,7 +7,8 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 /**
- * A service to asynchronously shut down the server so the user can exit
+ * A service to asynchronously shut down the server so the user can exit.
+ * It would make more sense to use Spring's scheduler to do this.
  */
 @Service
 public class ShutdownService {

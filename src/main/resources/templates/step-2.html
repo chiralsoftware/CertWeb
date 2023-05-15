@@ -20,6 +20,19 @@
                 <p><input id="saveCsr" disabled="disabled" type="submit" value="Save response"/></p>
             </form>
             
+            <h2>Instructions for fullchain file</h2>
+            <p>The certificates are typically supplied in a zip file which includes the certificate and a bundle.
+            The files will look like:</p>
+            
+            <ul><li><code>4a201262540ef2174db.crt</code></li><li><code>gd_bundle-g2-g1.crt</code></li></ul>
+            
+            <p>Concatenate the two files:</p>
+            
+            <pre>cat 4a201262540ef2174db.crt gd_bundle-g2-g1.crt > fullchain.crt</pre>
+            
+            <p>Upload the resulting <code>fullchain.crt</code> file. The issued domain certificate should be the first X509 in the file.
+                The last certificate in the <code>fullchain.crt</code> file will be the self-signed CA root certificate.</p>
+            
             <p><a href=".well-known">save well-known validation file</a> if it is required by the certificate authority</p>
             
             <form th:action="@{/reset-keystore}" method="post">
